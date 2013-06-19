@@ -1,0 +1,50 @@
+- close index!
+
+During tests, they will do
+	load queries, then select queries
+	they'll clean before each load
+
+select():
+attr: key, value, *, count(*)
+table: table name (only one table, no join)
+cond:
+	struct SelCond {
+		int attr;
+	}
+
+- scan all the conditions in cond
+	- find out equality conditions
+	- find out range upperbound, lowerbound
+	- is there condition on value column?
+- if index exist
+	- if there are equality conditions, or range on key
+		- use idnex
+- otherwise
+	- scan the whole table
+
+How to use the index to retrieve records?
+1. once we have a range on key
+	- !hasLowerBound && hasUpperBound
+	- !hasUpperBound && hasLowerBound
+	- hasUpperBound && hasLowerBound
+2. Use locate() and readForward() to get the rids
+	- start with minimum key
+	- read the next key until we hit the upperbound
+With GT, GE, use Max
+With LT, LE, use Min
+If equal, make sure it's within the Min and Max bound
+
+Don't need to test for negative values
+3. Once we have got the rids
+	- if there are conditions on the value column
+		- read the record using rid
+		- iterate those conditions and make a judgement
+	- output
+		- select key
+		- select key, value, or select *
+			- read the record first, if it is not read
+
+Things they check:
+	- page reads
+	- results
+	- running time

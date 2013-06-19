@@ -1,0 +1,402 @@
+1c1
+< #include "CBTreeNode.h"
+---
+> #include "BTreeNode.h"
+236,237c236,237
+< { 
+<   return this->getNextNodePtrHelp(buffer);
+---
+> {
+>   return this->getNextNodePtrHelp(buffer); 
+253c253
+<   this->setNextNodePtrHelp(buffer, pid);
+---
+>   this->setNextNodePtrHelp(buffer, pid); 
+275,279c275,279
+<   int* bint = (int*) buf;
+<   *(bint) = rid.pid;
+<   *(bint+1) = rid.sid;
+<   *(bint+2) = key;
+<   buf = (char*) bint;    
+---
+>     int* bint = (int*) buf;
+>     *(bint) = rid.pid;
+>     *(bint+1) = rid.sid;
+>     *(bint+2) = key;
+>     buf = (char*) bint;
+304,306d303
+< /********************************************************************
+<  *   BTNonLeafNode methods
+<  *******************************************************************/
+309a307,325
+> /*********************************************************************
+> 
+>              BTNonLeafNode methods
+> 
+> ***********************************************************************/
+> 
+> PageId BTNonLeafNode::getStartPid() const { return *((PageId*)data); }
+> 
+> void BTNonLeafNode::setStartPid(PageId pid) { 
+>   PageId* start_pid = (PageId*) data;
+>   *start_pid = pid;
+> }
+> 
+> NonLeafData* BTNonLeafNode::getStartOfBuffer() {
+>   char* start = data + sizeof(PageId);          // The first 4 bytes are reserved for the first pid
+>   return (NonLeafData*)start;
+> }
+> 
+> 
+318,319c334,343
+<   RC rc = pf.read(pid, buffer);
+<   return rc;
+---
+>       // Copy the contents of the page with id pid from PageFile pf into the internal buffer.
+>       // Open the page file
+>   
+>   RC read_status = pf.read(pid, data);
+>   
+>   // Go through the buffer and calculate how many valid pages do we have?
+>   
+>   // Make sure that read was successful
+>   return read_status;
+>   
+329,331c353,359
+< {
+<   RC rc = pf.write(pid, buffer);
+<   return rc;
+---
+> { 
+>   
+>   
+>   // Take the contents of the buffer and write it into the page file at the appropriate pid location
+>   RC write_status = pf.write(pid, data);
+>   
+>   return write_status;
+341,350c369,371
+<   for (int i = 0; i < NL_MAX_KEYS; i++)
+<   {
+<      int key;
+<      int index = i*(sizeof(int) + sizeof(PageId)) + NL_FIRST_KEY;
+<      convertToInt(buffer, index, key);
+<      if (key == -1)
+<      {
+<        return i;
+<      }
+<   }
+---
+>   
+>   // Go through the buffer, convert things to NonLeafData structs, then count how many until 
+>   // we get to pid = -1 or the end of the buffer.
+352c373,388
+<   return NL_MAX_KEYS;
+---
+>   NonLeafData* start = this->getStartOfBuffer();
+>   int count = 0;
+>   
+>   PageId start_pid = this->getStartPid();
+>   
+>   if(start_pid == -1) 
+>     return 0;
+>   
+>   while(start->right_pid != -1 && (char*) start < data + PageFile::PAGE_SIZE){
+>     count++;
+> 
+>     // This should increment by the size of NonLeafData struct....
+>     start++;
+>   }
+>   
+>   return count; 
+364,368d399
+<   int numKeys = this->getKeyCount();
+<   if (numKeys >= NL_MAX_KEYS)
+<   {
+<      return RC_NODE_FULL;
+<   }
+370,374c401,414
+<   int index = numKeys*(sizeof(int) + sizeof(PageId)) + NL_FIRST_KEY;
+<   for (int i = 0; i < numKeys; i++)
+<   {
+<      int oKey;
+<      convertToInt(buffer, i*(sizeof(int) + sizeof(PageId)) + NL_FIRST_KEY, oKey);
+---
+>   // Make sure that we have enough room to insert another (key, pid) pair.
+>   int MAX_PAIR_COUNT = MAX_NONLEAFDATA;
+> 
+>   if(this->getKeyCount() >= MAX_PAIR_COUNT)
+>     return RC_NODE_FULL;
+> 
+>   // Go through the page and point to where
+>   // find the position to insert the pid
+> 
+>    NonLeafData* start = this->getStartOfBuffer();
+>   int count = 0;
+> 
+>   while(start->right_pid != -1 && (char*) start < data + PageFile::PAGE_SIZE
+> 	&& start->key < key ){ 
+376,380c416,419
+<      if (key < oKey)
+<      {
+<         index = i*(sizeof(int) + sizeof(PageId)) + NL_FIRST_KEY;
+<         break;
+<      }
+---
+> 
+>       // This should increment by the size of NonLeafData struct....
+>       start++;
+>       count++;
+383,385c422,428
+<   for (int i = numKeys*(sizeof(int) + sizeof(PageId)) + NL_FIRST_KEY - 1; i >= index; i--)
+<   {
+<      buffer[i] = buffer[i-4];
+---
+>   // Shift everything down, if necessary.
+> 
+>   if(start->right_pid != -1)  {
+>       // Shift down the elements...
+> 
+>     int num_elements = MAX_NONLEAFDATA - count;
+>     shift((char*)start, num_elements);
+388,389c431,434
+<   convertToChar(key, buffer, index);
+<   convertToChar(pid, buffer, index+sizeof(int));
+---
+>   // and now insert...
+>   start->right_pid = pid;
+>   start->key = key;
+> 
+390a436
+>   
+393a440,448
+> 
+> // NonLeafData* BTNonLeafNode::find() {
+> 
+> //   while
+>   
+> 
+> // }
+> 
+> 
+405,409c460,462
+< {
+<   if (this->getKeyCount() < NL_MAX_KEYS)
+<   {
+<     return RC_INVALID_FILE_FORMAT;
+<   }
+---
+> { 
+>   // Insert the pair.
+>   RC insert_status = this->insert(key, pid);
+411,412c464,466
+<   // The first key in the new node
+<   int mid = (int) (NL_MAX_KEYS / 2) + 1;
+---
+>   // Go to the median value
+>   int num_keys = this->getKeyCount();
+>   int median_pos = num_keys / 2;
+414,419d467
+<   // Set the middle node that will be pushed up
+<   int mk;
+<   convertToInt(buffer, (mid-1)*(sizeof(int)+sizeof(PageId))+sizeof(PageId), mk);
+<   midKey = mk;
+<  
+<   convertToChar(-1, buffer, (mid-1)*(sizeof(int)+sizeof(PageId))+sizeof(PageId));
+421,446c469,493
+<   // Initialize the sibling
+<   int spk;
+<   PageId lp, rp;
+< 
+<   convertToInt(buffer, mid*(sizeof(int)+sizeof(PageId)), lp);
+<   convertToInt(buffer, mid*(sizeof(int)+sizeof(PageId))+sizeof(PageId), spk);
+<   convertToInt(buffer, (mid+1)*(sizeof(int)+sizeof(PageId)), rp);
+< 
+<   sibling.initializeRoot(lp, spk, rp);
+< 
+<   convertToChar(-1, buffer, mid*(sizeof(int)+sizeof(PageId)));
+<   convertToChar(-1, buffer, mid*(sizeof(int)+sizeof(PageId))+sizeof(PageId));
+<   convertToChar(-1, buffer, (mid+1)*(sizeof(int)+sizeof(PageId)));
+< 
+<   // Copy over the remaining key/pid pairs
+<   for (int i = mid+1; i < NL_MAX_KEYS; i++)
+<   {
+<     int k;
+<     PageId p;
+<     convertToInt(buffer, i*(sizeof(int)+sizeof(PageId))+sizeof(PageId), k);
+<     convertToInt(buffer, (i+1)*(sizeof(int)+sizeof(PageId)), p);
+<     sibling.insert(k, p);
+<  
+<     convertToChar(-1, buffer, i*(sizeof(int)+sizeof(PageId))+sizeof(PageId));
+<     convertToChar(-1, buffer, (i+1)*(sizeof(int)+sizeof(PageId)));
+<   }
+---
+>   
+>   NonLeafData* start = this->getStartOfBuffer();
+>    
+>   // Insert everything on the right into the sibling node
+>   
+>   // Go to the median position
+>   // median_pos should be bounded via getKeyCount
+>   // except for the special case where there are zero pairs.
+> 
+>   // Take the median value out, then insert its pid pointer as the start_pid for the 
+>   // sibling.
+>   
+>   NonLeafData* median_pair = start + median_pos;
+> 
+>   midKey = median_pair->key;
+>   sibling.setStartPid(median_pair->right_pid);
+>   
+>   // Pointer to the first NonLeafData to start copying
+>   NonLeafData* start_copy = start + median_pos + 1;
+>   
+>   for(int i = 0; i < num_keys; i++) {
+>     
+>     // Insert this guy into the sibling
+>     int current_pid = (start_copy + i)->right_pid;
+>     int current_key = (start_copy + i)->key;
+447a495,505
+>     RC insert_status = sibling.insert(key, pid);
+>     
+>     if(insert_status != 0) return insert_status;
+> 
+>     // Clear the current slot's value
+>     (start_copy+i)->right_pid = -1;
+>     (start_copy+i)->key = -1;
+>     
+>     
+>   }
+>   
+460c518,522
+<   int numKeys = this->getKeyCount();
+---
+>   
+>   // Look through the keys until we get a match
+>   
+>   NonLeafData* start = this->getStartOfBuffer();
+>   
+462,465c524,529
+<   for (int i = 0; i < numKeys; i++)
+<   {
+<     int key;
+<     convertToInt(buffer, i*(sizeof(int) + sizeof(PageId))+NL_FIRST_KEY, key);
+---
+>   int i = 0;
+>   for(; i < this->getKeyCount(); i++){
+>     
+>     // Search for the key, if we find a match, record
+>     // the pid and then stop looking
+>     if( (start+i)->key > searchKey) {
+467,472c531,551
+<     if (searchKey < key)
+<     {
+<        int tPid;
+<        convertToInt(buffer, i*(sizeof(int) + sizeof(PageId)), tPid);
+<        pid = tPid;
+<        return 0;
+---
+> 
+>       
+>      
+>       // Needs to return the previous NonLeafData's pid, because the 
+>       // pid's are attached to the right. Meaning the pid attached to 
+>       // a NonLeafData is the pid if the searchKey is greater than the 
+>       // NonLeafData's key.
+> 
+>       // If we are at the beginning of the list, then we will return the saved
+>       // start_pid
+>       
+>       if(i == 0) {
+> 	pid = this->getStartPid();
+>       }else {
+> 	
+> 	// We want the previous NonLeafData's pid, since pid's are attached to the right side.
+> 	pid = (start+i - 1)->right_pid;
+>       }
+>       
+>       
+>       return 0;
+473a553
+> 
+475,478c555,557
+<   
+<   int tPid;
+<   convertToInt(buffer, numKeys*(sizeof(int)+sizeof(PageId)), tPid);
+<   pid = tPid;
+---
+> 
+> 
+>   pid = (start+i-1)->right_pid;
+490c569
+< RC BTNonLeafNode::initializeRoot(PageId lpid, int key, PageId rpid)
+---
+> RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2)
+492,495c571,574
+<    for (int i = 0; i < PageFile::PAGE_SIZE / sizeof(int); i++)
+<    {
+<       convertToChar(-1, buffer, i*sizeof(int));
+<    }
+---
+>   
+>   
+>    
+>    NonLeafData* start = this->getStartOfBuffer();
+497,499c576,593
+<    convertToChar(lpid, buffer, 0);
+<    convertToChar(key, buffer, sizeof(PageId));
+<    convertToChar(rpid, buffer, sizeof(PageId) + sizeof(int));
+---
+>   // Init the buffer (page) with default values. if pid = -1, it means that
+>   // this is the end of the buffer. Therefore we will set everything to -1.
+>   
+>   for(int i = 0; i < MAX_NONLEAFDATA; i++) {
+>     (start+i)->right_pid = -1;
+>     (start+i)->key = -1;
+>   }
+>   
+>   // Add the values
+>   // Add the first pid value
+>   PageId* first_pid = (PageId*)data;
+>   *first_pid = pid1;
+>   
+>   
+>   start->right_pid = pid2;
+>   start->key = key;
+>   
+>  return 0; 
+501d594
+<    return 0;
+504,509d596
+< void BTNonLeafNode::convertToChar(int conv, char* buffer, int index)
+< {
+<   int* bint = (int*) buffer;
+<   *(bint+index/sizeof(int)) = conv;
+<   buffer = (char*) bint;
+< }
+511,514c598,616
+< void BTNonLeafNode::convertToInt(char* buffer, int index, int& result)
+< {
+<   int* bint = (int*) buffer;
+<   result = *(bint+index/sizeof(int));
+---
+> void BTNonLeafNode::shift(const char* buffer, unsigned int size) {
+> 
+>   
+>   NonLeafData* start = (NonLeafData*)buffer;
+> 
+>   // Start with the end
+>   unsigned int STOP = 0;
+> 
+>   // i = size - 1 because we want to move things to the right, thus the last element is thrown away.
+>   // We are starting from the second to last element.
+>   for(unsigned int i = size - 1; i > STOP; i--){
+> 
+>     NonLeafData* end = ((NonLeafData*) buffer)+i;
+>     NonLeafData* head = ((NonLeafData*) buffer)+i-1;
+> 
+>     // Copy the values
+>     end->right_pid = head->right_pid;
+>     end->key = head->key;
+>   }
+515a618
+> 

@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="style.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<div id="topbar">
+<div id="TopSection">
+<h1 id="sitename"><span><a href="#">IM</a></span><a href="#"><u>AFAKE</u></a>
+<h1 id="sitename"><span>DB</span>
+</h1>
+<div id="topbarnav"> <span class="topnavitems"></span><form action="#"><div class="searchform">
+  <label for="searchtxt">
+    Search Movies/Actors/Directors:
+  </label>
+  <input class="keywordfield" id="searchtxt"/>
+  <input type="submit" value="Search" />
+</div> </form></div>
+<div class="clear"></div>
+<ul id="topmenu">
+<li class="active"><a href="search.php">Search Results</a></li>
+<li><a href="actors.php">View Actors</a></li>
+<li><a href="movies.php">View Movies</a></li>
+<li><a href="">Add Information</a></li>
+<li><a href="">Add Comment</a></li>
+<li><a href=""></a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

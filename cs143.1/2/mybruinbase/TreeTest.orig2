@@ -1,0 +1,125 @@
+#include "BTreeIndex.cc"
+#include "BTreeNode.cc"
+#include "PageFile.cc"
+#include "RecordFile.cc"
+#include <cstdio>
+
+int main()
+{
+
+  printf("Starting Chris' tests....\n");
+
+/*	// Node Test
+	BTNonLeafNode n;
+	n.initializeRoot(10, -1, -1);
+
+	for (int i = 0; i < MAX_NONLEAFDATA; i++)
+	{
+
+	  
+		RC nrc = n.insert(i, 8);
+		if (nrc != 0)
+		{
+			printf("Insert failed.\n");
+			printf("RC: %i, Key: %i\n", nrc, i);
+			break;
+		}
+	}
+*/
+
+	// Creation
+	printf("Compiled\n");
+	
+	BTreeIndex tree;
+	tree.open("test.idx", 'w');
+
+	printf("Opened\n");
+
+	RecordId rid = {1, 80};
+
+	// Insert: empty tree
+	RC rc = tree.insert(1, rid);
+
+	printf("RC: %i\n", rc);
+	printf("Height 1:\n");
+
+	// Locate: tree of height 1
+	IndexCursor ic;
+	rc = tree.locate(1, ic);
+
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+
+	// Read forward
+	RecordId res;
+	int key;
+	rc = tree.readForward(ic, key, res);
+
+	printf("RC: %i, Key: %i, RID: %i %i\n", rc, key, res.pid, res.sid);
+
+	// Insert: tree of height 1
+	rc = tree.insert(2, rid);
+
+	printf("RC: %i\n", rc);
+
+	rc = tree.locate(1, ic);
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+	rc = tree.locate(2, ic);
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+
+	// Insert: tree of height 2
+	for (int i = 0; i < 100; i++)
+	{
+		rc = tree.insert(i+3, rid);
+		if (rc != 0)
+		{
+			printf("Failed: %i\n", i);
+			break;
+		}
+	}
+
+	// Locate: tree of height 2
+	printf("Height 2:\n");
+	rc = tree.locate(100, ic);
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+
+	// Close and open
+	tree.writeMetadata();
+	tree.close();
+	tree.open("test.idx", 'w');
+	tree.readMetadata();
+
+	printf("Closed and opened:\n");
+
+	rc = tree.insert(101, rid);
+	printf("RC: %i\n", rc);
+	rc = tree.locate(1, ic);	
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+	rc = tree.locate(101, ic);
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+
+	// Insert: tree of height 3
+	for (int i = 102; i < 12500; i++)
+	{
+		rc = tree.insert(i, rid);
+		if (rc != 0)
+		{
+			printf("Failed: %i\n", i);
+			break;
+		}
+	}
+
+	printf("Height 3:\n");
+
+	// Locate: tree of height 3
+	rc = tree.locate(1, ic);	
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+	rc = tree.locate(12000, ic);
+	printf("RC: %i, IC: %i %i\n", rc, ic.pid, ic.eid);
+
+	rc = tree.readForward(ic, key, res);
+
+	printf("RC: %i, Key: %i, RID: %i %i\n", rc, key, res.pid, res.sid);
+
+	printf("End of Chris' tests.\n");
+
+}

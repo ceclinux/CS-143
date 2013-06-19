@@ -1,0 +1,1294 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> 
+
+<head>
+<title></title>
+
+
+<link  href="lib/jquery-ui.css" type="text/css" rel="stylesheet" />
+<script src="lib/jquery.min.js"> </script>
+<script src="lib/jquery-ui.min.js"> </script>
+
+
+<style type="text/css">
+
+# menu {
+
+    text-align:center;
+    font-family:Arial, sans-serif;
+}
+
+
+#search_results {
+
+
+}
+
+.titles {
+ font-weight:bold;
+
+
+}
+
+
+
+#search {
+     margin:20px;
+
+
+}
+
+
+
+
+.exact {
+    color:#FF0000;
+}
+
+.close {
+    color:#CC6633;
+}
+
+.partial {
+    color:#0000CC;
+}
+
+
+
+</style>
+
+
+<script type="text/javascript">
+
+
+try{
+
+
+function evaluateResponse(data){
+
+      var response = !(/[^,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]/.test(data.replace(/"(\\.|[^"\\])*"/g, ''))) &&
+                     eval('(' + data + ')');
+
+      return response;
+}
+
+
+
+function aggregate(type, genre_array) {
+      
+//      alert("Array = "+ genre_array);
+      
+      var result = "";
+      for(var i = 0; i < genre_array.length; i++){
+           var genre = genre_array[i];
+	
+	if(type =="director" || type=="actors") {
+	     result+= genre["first"] +" " +genre["last"] +", ";
+
+	}else
+	   result+= genre[type]+", ";
+      }
+
+      return result.substring(0, result.length-2);
+}
+
+
+function showMovie(movieid) {
+
+
+
+    // Get info about the movie
+    $.get("movie.php", {id:movieid}, function(data){
+          
+	  var result = evaluateResponse(data);
+	  var movie_info = result[0]["movie"];
+	  var genre_info = result[1]["genre"];
+	  var director_info = result[2]["director"];
+	  var actor_info = result[3]["actor"];
+	  	  
+
+
+	  // Set the values
+	  
+	  // Change the review mid
+
+//	  alert("movie id is = "+ movie_info["id"]);
+	  $("#comment_add #mid").attr("value",movie_info["id"]);
+
+
+	  // Get the comments for this movie
+	  $.get("reviews.php", {mid:movie_info["id"]}, function(data) {
+	  
+	         $("#movie_reviews").html("");
+
+	        var parsedData = evaluateResponse(data);
+		var reviews = parsedData[0];
+		var stats = parsedData[1];
+
+		for(var i = 0; i < reviews.length; i++){
+                      var name = reviews[i]["name"];
+		      var time = reviews[i]["time"];
+		      var rating = reviews[i]["rating"];
+		      var comment = reviews[i]["comment"];
+
+		      var output= "<strong>"+name+"</strong> rated the movie a <strong>"+ rating+"</strong> and said the movie was <strong>'"+
+				   comment+"'</strong> on <strong>"+time+"</strong>.";
+		      var newrow = $("<tr><td>"+output+"</td></tr>");
+		      $("#movie_reviews").append(newrow);
+		}
+		
+	  });
+
+
+	  $("#movie_view #title").html(movie_info["title"]);
+	  $("#movie_view #year").html(movie_info["year"]);
+	  $("#movie_view #rating").html(movie_info["rating"]);
+	  $("#movie_view #company").html(movie_info["company"]);
+	  $("#movie_view #genre").html(aggregate("genre",genre_info));
+	  
+	  $("#movie_view #director").html(aggregate("director", director_info));
+	  $("#movie_view #actors").html(aggregate("actors", actor_info));	  	  
+		  
+		  // show the dialog now
+		  $("#movie_view").dialog({modal:true, width:500});	  	  
+
+    });
+
+}
+
+function showPerson(id, target) {
+	$.get("person.php", {target:target, id:id}, function(data){
+		var result = evaluateResponse(data);
+		var person_info = result[0]["person"];
+		var movie_info = result[1]["movie"];
+
+
+	if (target == "actor")
+	{
+		$("#actor_view #firstname").html(person_info[0]["first"]);
+		$("#actor_view #lastname").html(person_info[0]["last"]);
+		$("#actor_view #sex").html(person_info[0]["sex"]);
+		$("#actor_view #dob").html(person_info[0]["dob"]);
+		(person_info[0]["dod"] == null) ? 
+			$("#actor_view #dod").html("N/A") : 
+			$("#actor_view #dod").html(person_info[0]["dod"]);
+
+		clearActorMovies();
+	
+		for (var i = 0; i < movie_info.length; i++)
+		{
+			var row = movie_info[i];
+			var h = "<tr>";
+			h += "<td>" + row["title"] + "</td>";
+			h += "<td>" + row["role"] + "</td>";
+			h += "<td>" + row["year"] + "</td>";
+			h += "</tr>";
+	
+			$("#actor_view #movies").append(h);
+		}
+
+		$("#actor_view").dialog({modal:true});	  	  
+	} else
+	{
+		$("#director_view #firstname").html(person_info[0]["first"]);
+		$("#director_view #lastname").html(person_info[0]["last"]);
+		$("#director_view #dob").html(person_info[0]["dob"]);
+		(person_info[0]["dod"] == null) ? 
+			$("#director_view #dod").html("N/A") : 
+			$("#director_view #dod").html(person_info[0]["dod"]);
+
+		clearDirectorMovies();
+	
+		for (var i = 0; i < movie_info.length; i++)
+		{
+			var row = movie_info[i];
+			var h = "<tr>";
+			h += "<td>" + row["title"] + "</td><td></td>";
+			h += "<td>" + row["year"] + "</td>";
+			h += "</tr>";
+	
+			$("#director_view #movies").append(h);
+		}
+
+		$("#director_view").dialog({modal:true});	  	  
+	}
+  });
+
+}
+
+
+function clearActorMovies()
+{
+	$("#actor_view #movies").html("");
+}
+
+function clearDirectorMovies()
+{
+	$("#director_view #movies").html("");
+}
+
+
+
+function search() {
+       var query = $("#keywords").val();
+       var type = $("#target").val();
+
+
+
+       $.get("search.php", {keywords:query, target:type}, function(data) {
+
+       
+
+	      // Take the JSON string and convert it to a javascript object
+              var response = !(/[^,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]/.test(data.replace(/"(\\.|[^"\\])*"/g, ''))) &&
+                     eval('(' + data + ')');
+	      
+	      var movie_data =  response["movie"];
+	      var director_data = response["director"];
+	      var actor_data = response["actor"];
+	      
+
+	      // Output the "exact" data of movie.
+	      // alert(  movie_data["close"]["1"]);
+
+//	      alert(actor_data);
+	      
+	      clear_search();	      
+
+      	      search_add_data("#search_results #movies",movie_data, "movie","exact");      
+	      search_add_data("#search_results #movies",movie_data, "movie","close");      
+	      search_add_data("#search_results #movies",movie_data, "movie", "partial");
+
+
+              search_add_data("#search_results #actors",actor_data, "actor","exact");
+              search_add_data("#search_results #actors",actor_data, "actor","partial");
+
+
+
+
+              search_add_data("#search_results #directors",director_data, "director","exact");
+              search_add_data("#search_results #directors",director_data, "director","partial");
+
+
+//	      search_add_row("hi");
+
+	      // Output the "close" data of movie
+//	      for(var i = 0; i < movie_data["close"].length; i++){
+//	           search_add_row();
+//	      }
+	      
+
+	      $("#search_results").show();
+
+	      
+       });
+
+
+}
+
+
+
+function clear_search() {
+
+$("#search_results #actors").html("");
+$("#search_results #directors").html("");
+$("#search_results #movies").html("");
+
+
+
+}
+
+function search_add_data(tableid, data, type, closeness) {
+
+
+try{
+
+
+
+       for(var i = 0; i < data[closeness].length; i++) {
+            search_add_row(tableid,data[closeness][i], type, closeness)
+
+
+       }
+
+
+}catch(e) {
+
+//alert(e);
+
+}
+
+}
+
+
+
+function search_add_row(tableid, movie_data, type, closeness) {
+
+
+//      var data = movie_data.split();
+
+      var movie_name = "";
+
+
+      if(type == "movie"){
+            movie_name = movie_data[1];
+    }else {
+         movie_name = movie_data[1] +" "+movie_data[2];
+    }
+
+
+
+      var view = $("<a href='#'>View</a>");
+      
+      var newcol = $("<td></td>");
+      
+      var view_col = newcol.clone();
+      var name_col = $("<td>"+movie_name+"</td>");
+      
+      var newrow = $("<tr></tr>");
+      
+      view_col.append(view);
+
+      view.click(function () {
+//          alert(movie_data[0]);
+        
+          if(type=="movie"){
+	            showMovie(movie_data[0]);
+	  } else {
+		showPerson(movie_data[0], type);
+	}
+      });
+
+
+
+      
+      newrow.append(name_col);
+      newrow.append(view_col);        
+      
+      newrow.addClass(closeness);      
+      
+      $(tableid).append(newrow);
+
+}
+
+
+
+function UI_Init() {
+
+
+              // Fade everything
+	      $(".movie").fadeTo(0.2,0.5);
+	      $(".actor").fadeTo(0.2,0.5);
+	      $(".search").fadeTo(0.2,0.5);
+	      $(".director").fadeTo(0.2,0.5);
+
+              // Set up some generic UI stuff
+	      $(".movie").hover(function() {
+	             $(this).css('color','red');
+		     $(this).fadeTo(1.5, 1.00);
+		     
+	      },
+	      
+	      function() {
+	          $(this).css('color', 'black');
+  		  $(this).fadeTo(1.5, 0.30);
+	      });
+
+
+              // Set up some generic UI stuff
+	      $(".actor").hover(function() {
+	             $(this).css('color','red');
+     		     $(this).fadeTo(1.5, 1.0);
+	      },
+	      
+	      function() {
+	          $(this).css('color', 'black');
+		     $(this).fadeTo(1.5, 0.30);
+	      });
+
+
+
+	      $(".director").hover(function() {
+	             $(this).css('color','red');
+		     $(this).fadeTo(1.5, 1.0);		     
+	      },
+	      
+	      function() {
+	          $(this).css('color', 'black');
+		  $(this).fadeTo(1.5, 0.3);
+	      });
+
+	      $(".search").hover(function() {
+	             $(this).css('color','red');
+     		     $(this).fadeTo(1.5, 1.0);
+	      },
+	      
+	      function() {
+	          $(this).css('color', 'black');
+		  $(this).fadeTo(1.5, 0.3);
+
+
+	      });
+
+
+
+
+
+}
+
+function addMovie() {
+
+     // Get the values filled out in the form
+     
+     var mtitle = $("#movietitle").val();
+	(mtitle == "") ? mtitle="NULL" : mtitle=mtitle;
+     var myear = $("#movieyear").val();
+	(myear == "") ? myear="NULL" : myear=myear;
+     var mrating = $("#movierating").val();
+	(mrating == "") ? mrating="NULL" : mrating=mrating;
+     var mcompany = $("#moviecompany").val();
+	(mcompany == "") ? mcompany="NULL" : mcompany=mcompany;
+     
+     $.post("movie.php", { title:mtitle, year:myear, rating:mrating, company:mcompany}, function(data) {
+          alert("Movie was added!");
+
+     });
+
+}
+      
+function addActor()
+{
+	var afirst = $("#actorfirst").val();
+	(afirst == "") ? afirst="NULL" : afirst=afirst;
+	var alast = $("#actorlast").val();
+	(alast == "") ? alast="NULL" : alast=alast;
+	var asex = $("#actorsex").val();
+	var abmonth = $("#actor_form #dob #month").val();
+	var abday = $("#actor_form #dob #day").val();
+	var abyear = $("#actor_form #dob #year").val();
+	var admonth = $("#actor_form #dod #month").val();
+	var adday = $("#actor_form #dod #day").val();
+	var adyear = $("#actor_form #dod #year").val();
+
+	var adob = abyear + "-" + abmonth + "-" + abday;
+	(abmonth == "" || abday == "" || abyear == "") ? adob="NULL" : adob=adob;
+	var adod = adyear + "-" + admonth + "-" + adday;
+	(admonth == "" || adday == "" || adyear == "") ? adod="NULL" : adod=adod;
+
+	var atarget = "actor";
+
+	$.post("person.php", { target:atarget, first:afirst, last:alast, sex:asex, dob:adob, dod:adod}, function(data) {
+	alert("Actor was added!");
+	});
+	
+}
+
+function addDirector()
+{
+	var dfirst = $("#directorfirst").val();
+	(dfirst == "") ? dfirst="NULL" : dfirst=dfirst;
+	var dlast = $("#directorlast").val();
+	(dlast == "") ? dlast="NULL" : dlast=dlast;
+	var dsex = $("#directorsex").val();
+	var dbmonth = $("#director_form #dob #month").val();
+	var dbday = $("#director_form #dob #day").val();
+	var dbyear = $("#director_form #dob #year").val();
+	var ddmonth = $("#director_form #dod #month").val();
+	var ddday = $("#director_form #dod #day").val();
+	var ddyear = $("#director_form #dod #year").val();
+
+	var ddob = dbyear + "-" + dbmonth + "-" + dbday;
+	(dbmonth == "" || dbday == "" || dbyear == "") ? ddob="NULL" : ddob=ddob;
+	var ddod = ddyear + "-" + ddmonth + "-" + ddday;
+	(ddmonth == "" || ddday == "" || ddyear == "") ? ddod="NULL" : ddod=ddod;
+
+	var dtarget = "director";
+
+	$.post("person.php", { target:dtarget, first:dfirst, last:dlast, sex:dsex, dob:ddob, dod:ddod}, function(data) {
+	     alert("Director was added!");
+	});
+}
+
+function hideall() {
+     $("#movie_add").hide();
+     $("#director_add").hide();
+     $("#actor_add").hide();
+     $("#search").hide();
+     $("#comment_add").hide();
+     $("#search_results").hide();
+}
+
+
+function addComment() {
+      // Get the needed values
+      var rname = $("#comment #name").val();
+      var rrating = $("#comment #rating").val();
+      var rcomment = $("#comment #content").val();
+      var rmid = $("#comment #mid").val();
+
+
+      // alert(rmid);
+
+      $.post("reviews.php", {name:rname, mid:rmid, 
+                             rating:rrating, comment:rcomment},
+              function(data) {
+	           alert("Thanks for rating!");
+	      });
+
+}
+
+
+      $(document).ready(function () {
+
+              UI_Init();     
+ 
+              // Setup all the button clicks and what not
+	      $("#comment_add").hide();
+	      $("#comment #submit").click(function() {
+	              addComment();
+	      });
+	      
+	      
+	      // Add review button
+	      $("#add_review").click(function() {
+	             
+	             $("#comment_add").dialog({width:800, modal:true});
+	      });
+
+	      
+
+	      $("#movie_view #close_view").click(function() {
+	           $(this).parent().dialog("close");
+	      });
+
+
+	      $("#comment_close").click(function() {
+		    $("#comment_add").dialog("close");
+	      })
+
+	      $("#actor_view #close_view").click(function() {
+	           $(this).parent().dialog("close");
+	      });
+
+
+	      $("#director_view #close_view").click(function() {
+	           $(this).parent().dialog("close");
+	      });
+
+	      // Search stuff
+	      $("#search").hide();
+
+	      $(".search").click(function() {
+	              hideall();
+		      $("#search").fadeIn(1000);
+	      });
+
+
+	      $("#director_add").hide();
+	      $(".director").click(function() {
+	      	      hideall();
+	             $("#director_add").fadeIn(1000);
+
+	      });
+	      
+
+	      $("#actor_add").hide();
+	      $(".actor").click(function() {
+
+     	      	      hideall();
+	            $("#actor_add").fadeIn(1000);
+	      });
+	      
+              $("#movie_add").hide();
+	      $(".movie").click(function() {
+
+	          // Hide everything
+ 	      	      hideall();		  
+		  
+		  // Show the movie add form
+	          $("#movie_add").fadeIn(1000);
+	      });
+
+	      $("#moviesubmit").click(function() {
+//	      	      $(this).effect("bounce", { times:3 }, 300);
+	              addMovie();
+	      });
+
+		$("#actorsubmit").click(function() {
+			addActor();
+		});
+		
+		$("#directorsubmit").click(function() {
+			addDirector();
+		});
+		
+		$("#movie_view").hide();
+		$("#actor_view").hide();
+		$("#director_view").hide();
+
+	      $("#searchbutton").click(function () {
+	            search();
+	      });
+
+
+	      try{	      
+//	          $("#view").dialog({modal:true, title:"Hello"});
+              }catch(e){
+	           alert(e);
+              }
+	     
+
+      });
+
+} catch(e) {
+       alert(e);
+}
+
+
+</script>
+
+
+</head>
+
+<body>
+
+<center>
+<div id="menu"> 
+
+<table>
+<tr>
+      <td class="movie"> <img src="images/movie.gif"></td>
+      <td class="actor"> <img src="images/actor.gif"></td>
+      <td class="director"> <img src="images/director.gif"></td>
+      <td class="search"> <img src="images/search.gif"></td>
+</tr>
+
+
+<tr class="titles">
+      <td class="movie">Movies</td>
+      <td class="actor">Actors</td>
+      <td class="director">Director </td>
+      <td class="search">Search</td>
+      
+
+
+</tr>
+
+</table>
+
+</div>
+<p>
+<p>
+
+<div id="movie_add">
+     <span id="status"> <strong>Add a Movie.</strong></span>
+     <table id="movie_form" > 
+         <tr>
+	        <td> Title </td>
+		<td> <input id="movietitle" type="textfield" size="50" /> </td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Year </td>
+		<td> <input id="movieyear" type="textfield" size="7" /> </td>
+	 </tr>
+
+
+
+	  <tr>
+	        <td> Rating </td>
+		<td> <input id="movierating" type="textfield" size="3" /> </td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Company </td>
+		<td> <input id="moviecompany" type="textfield" size="20" /> </td>
+	 </tr>
+
+	 <tr>
+	 <td> <input id="moviesubmit" type="button" value="Add Movie" />
+
+	 <tr>
+
+     </table>
+
+</div>
+
+
+
+<div id="actor_add">
+     <span id="status"> <strong>Add a Actor.</strong></span>
+     <table id="actor_form" > 
+         <tr>
+	        <td> First Name </td>
+		<td> <input id="actorfirst" type="textfield" size="20" /> </td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Last Name </td>
+		<td> <input id="actorlast" type="textfield" size="20" /> </td>
+	 </tr>
+
+	  <tr>
+	        <td> Sex </td>
+		<td>
+		      <select id="actorsex">
+		             <option>Male</option>
+			     <option>Female</option>
+		       </select>
+		</td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Date of Birth </td>
+		<td id="dob"> <br>Month 
+	             <select id="month">
+		     <option></option>
+			 <option>1</option>
+                         <option>2</option>
+			 <option>3</option>
+                         <option>4</option>
+			 <option>5</option>
+                         <option>6</option>
+			 <option>7</option>
+                         <option>8</option>
+			 <option>9</option>
+                         <option>10</option>
+ 			 <option>11</option>
+                        <option>12</option>
+
+
+
+	            </select>
+		    
+		    Day 
+		         <select id="month">
+			 <option></option>
+                         <option>1</option>
+                         <option>2</option>
+                         <option>3</option>
+                         <option>4</option>
+                         <option>5</option>
+                         <option>6</option>
+                         <option>7</option>
+                         <option>8</option>
+                         <option>9</option>
+                         <option>10</option>
+                         <option>11</option>
+                        <option>12</option>
+                        <option>13</option>
+                        <option>14</option>
+                        <option>15</option>
+                        <option>16</option>
+                        <option>17</option>
+                        <option>18</option>
+                        <option>19</option>
+                        <option>20</option>
+                        <option>21</option>
+                        <option>22</option>
+                        <option>23</option>
+                        <option>24</option>
+                        <option>25</option>
+                        <option>26</option>
+                        <option>27</option>
+                        <option>28</option>
+                        <option>29</option>
+                        <option>30</option>
+                        <option>31</option>
+
+                    </select>
+
+		   Year 
+		      <input type="textfield" id="year" size="4"  maxlength="4"/>
+
+
+
+                    </select>
+
+
+
+	 </tr>
+
+	  <tr>
+	        <td> Date of Death </td>
+		<td id="dod"> <br>Month 
+	             <select id="month">
+		     <option></option>
+			 <option>1</option>
+                         <option>2</option>
+			 <option>3</option>
+                         <option>4</option>
+			 <option>5</option>
+                         <option>6</option>
+			 <option>7</option>
+                         <option>8</option>
+			 <option>9</option>
+                         <option>10</option>
+ 			 <option>11</option>
+                        <option>12</option>
+
+
+
+	            </select>
+		    
+		    Day 
+		         <select id="month">
+			 <option></option>
+                         <option>1</option>
+                         <option>2</option>
+                         <option>3</option>
+                         <option>4</option>
+                         <option>5</option>
+                         <option>6</option>
+                         <option>7</option>
+                         <option>8</option>
+                         <option>9</option>
+                         <option>10</option>
+                         <option>11</option>
+                        <option>12</option>
+                        <option>13</option>
+                        <option>14</option>
+                        <option>15</option>
+                        <option>16</option>
+                        <option>17</option>
+                        <option>18</option>
+                        <option>19</option>
+                        <option>20</option>
+                        <option>21</option>
+                        <option>22</option>
+                        <option>23</option>
+                        <option>24</option>
+                        <option>25</option>
+                        <option>26</option>
+                        <option>27</option>
+                        <option>28</option>
+                        <option>29</option>
+                        <option>30</option>
+                        <option>31</option>
+
+                    </select>
+
+		   Year 
+		      <input type="textfield" id="year" size="4"  maxlength="4"/>
+
+
+
+                    </select>
+
+
+
+	 </tr>
+	 <tr>
+        </tr>
+
+         <tr>
+         <td> <input id="actorsubmit" type="button" value="Add Actor" />
+
+         <tr>
+
+     </table>
+
+
+</div>
+
+
+
+<div id="director_add">
+     <span id="status"> <strong>Add a Director.</strong></span>
+     <table id="director_form" > 
+         <tr>
+	        <td> First Name </td>
+		<td> <input id="directorfirst" type="textfield" size="20" /> </td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Last Name </td>
+		<td> <input id="directorlast" type="textfield" size="20" /> </td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Date of Birth </td>
+		<td id="dob"> <br>Month 
+	             <select id="month">
+		     <option></option>
+			 <option>1</option>
+                         <option>2</option>
+			 <option>3</option>
+                         <option>4</option>
+			 <option>5</option>
+                         <option>6</option>
+			 <option>7</option>
+                         <option>8</option>
+			 <option>9</option>
+                         <option>10</option>
+ 			 <option>11</option>
+                        <option>12</option>
+
+
+
+	            </select>
+		    
+		    Day 
+		         <select id="month">
+			 <option></option>
+                         <option>1</option>
+                         <option>2</option>
+                         <option>3</option>
+                         <option>4</option>
+                         <option>5</option>
+                         <option>6</option>
+                         <option>7</option>
+                         <option>8</option>
+                         <option>9</option>
+                         <option>10</option>
+                         <option>11</option>
+                        <option>12</option>
+                        <option>13</option>
+                        <option>14</option>
+                        <option>15</option>
+                        <option>16</option>
+                        <option>17</option>
+                        <option>18</option>
+                        <option>19</option>
+                        <option>20</option>
+                        <option>21</option>
+                        <option>22</option>
+                        <option>23</option>
+                        <option>24</option>
+                        <option>25</option>
+                        <option>26</option>
+                        <option>27</option>
+                        <option>28</option>
+                        <option>29</option>
+                        <option>30</option>
+                        <option>31</option>
+
+                    </select>
+
+		   Year 
+		      <input type="textfield" id="year" size="4"  maxlength="4"/>
+
+
+
+                    </select>
+
+
+
+	 </tr>
+
+	  <tr>
+	        <td> Date of Death </td>
+		<td id="dod"> <br>Month 
+	             <select id="month">
+		     <option></option>
+			 <option>1</option>
+                         <option>2</option>
+			 <option>3</option>
+                         <option>4</option>
+			 <option>5</option>
+                         <option>6</option>
+			 <option>7</option>
+                         <option>8</option>
+			 <option>9</option>
+                         <option>10</option>
+ 			 <option>11</option>
+                        <option>12</option>
+
+
+
+	            </select>
+		    
+		    Day 
+		         <select id="month">
+			 <option></option>
+                         <option>1</option>
+                         <option>2</option>
+                         <option>3</option>
+                         <option>4</option>
+                         <option>5</option>
+                         <option>6</option>
+                         <option>7</option>
+                         <option>8</option>
+                         <option>9</option>
+                         <option>10</option>
+                         <option>11</option>
+                        <option>12</option>
+                        <option>13</option>
+                        <option>14</option>
+                        <option>15</option>
+                        <option>16</option>
+                        <option>17</option>
+                        <option>18</option>
+                        <option>19</option>
+                        <option>20</option>
+                        <option>21</option>
+                        <option>22</option>
+                        <option>23</option>
+                        <option>24</option>
+                        <option>25</option>
+                        <option>26</option>
+                        <option>27</option>
+                        <option>28</option>
+                        <option>29</option>
+                        <option>30</option>
+                        <option>31</option>
+
+                    </select>
+
+		   Year 
+		      <input type="textfield" id="year" size="4"  maxlength="4"/>
+
+
+
+                    </select>
+
+
+
+	 </tr>
+	 <tr>
+        </tr>
+
+         <tr>
+         <td> <input id="directorsubmit" type="button" value="Add Director" />
+
+         <tr>
+
+     </table>
+
+
+</div>
+
+<div id="search">
+
+       <input type="textfield" size="70" id="keywords" />  
+       <input type="button" value="Search" id="searchbutton" />
+       <p>
+       
+       Search for: <select id="target">
+           <option>all</option>
+	   <option>actor</option>
+	   <option>movie</option>
+	   <option>director</option>
+	   <option>person</option>
+
+       </select>
+
+</div>
+
+
+
+
+
+<div id="comment_add">
+     <span id="status"> <strong>Add a Comment.</strong></span>
+     <table id="comment" > 
+
+     <input type="hidden" id="mid" value="test" />
+
+         <tr>
+	        <td> Name </td>
+		<td> <input id="name" type="textfield" size="50" /> </td>
+	 </tr>
+	  <tr>
+	        <td> Rating </td>
+		<td> <select id="rating">
+		          <option>1</option>
+			  <option>2</option>
+			  <option>3</option>
+			  <option>4</option>
+			  <option>5</option>
+		    </select>
+		</td>
+	 </tr>
+
+
+	  <tr>
+	        <td> Comment </td>
+		<td> <textarea id="content" rows="10" cols="50"></textarea> </td>
+	 </tr>
+
+	 <tr>
+	 <td> <input id="submit" type="button" value="Add Comment" />
+	 <input id="comment_close" type="button" value="Close" />
+
+	 <tr>
+
+     </table>
+
+</div>
+
+
+
+
+
+<div id="movie_view">
+     <table>
+         <tr>
+	       <td> <strong>Title </strong></td>
+	       <td id="title"> </td>
+	 </tr>
+
+	 <tr>
+	      <td><strong> Year </strong></td>
+	       <td id="year"> </td>	      
+	 </tr>
+
+	  <tr>
+	      <td><strong> Rating </strong></td>
+	       <td id="rating"> </td>	      
+	 </tr>
+
+
+	  <tr>
+	      <td><strong> Company </strong></td>
+	       <td id="company"> </td>	      
+	 </tr>
+
+
+	  <tr>
+	      <td><strong> Genre </strong></td>
+	       <td id="genre"> </td>	      
+	 </tr>
+
+
+	  <tr>
+	      <td><strong> Director </strong></td>
+	       <td id="director"> </td>	      
+	 </tr>
+
+
+	  <tr>
+	      <td><strong> Actors </strong></td>
+	       <td id="actors"> </td>	      
+	 </tr>
+
+     </table>
+
+     <table id="movie_reviews">
+          
+     </table>
+
+
+     <input type="button" id="add_review" value="Add Review" />
+     <input type="button" id="close_view" value="Close" />
+     
+</div>
+
+
+<div id="actor_view">
+           <table>
+	           <tr>
+		         <td><strong>First Name </strong></td>
+			 <td id="firstname"></td>
+		   </tr>
+
+
+	           <tr>
+		         <td><strong>Last Name</strong></td>
+			 <td id="lastname"></td>
+		   </tr>
+
+
+	           <tr>
+		         <td><strong>Sex</strong></td>
+			 <td id="sex"></td>
+		   </tr>
+		<tr>
+			<td><strong>Date of Birth</strong></td>
+			<td id="dob"></td>
+		</tr>
+		<tr>
+			<td><strong>Date of Death</strong></td>
+			<td id="dod"></td>
+		</tr>
+
+	   </table>
+	<table id="movies">
+		<tr><td><br/></td></tr>
+		<tr>	<td></td>
+			<td><strong>Movies</strong></td>
+			<td></td>
+		</tr>
+		<tr>
+			<td><strong>Movie</strong></td>
+			<td><strong>Role</strong></td>
+			<td><strong>Year</strong></td>
+		</tr>
+	</table>
+
+     <input type="button" id="close_view" value="Close" />
+</div>
+
+<div id="director_view">
+           <table>
+	           <tr>
+		         <td><strong>First Name </strong></td>
+			 <td id="firstname"></td>
+		   </tr>
+
+
+	           <tr>
+		         <td><strong>Last Name</strong></td>
+			 <td id="lastname"></td>
+		   </tr>
+
+
+		<tr>
+			<td><strong>Date of Birth</strong></td>
+			<td id="dob"></td>
+		</tr>
+		<tr>
+			<td><strong>Date of Death</strong></td>
+			<td id="dod"></td>
+		</tr>
+
+	   </table>
+	<table id="movies">
+		<tr><td><br/></td></tr>
+		<tr>	<td></td>
+			<td><strong>Movies</strong></td>
+			<td></td>
+		</tr>
+		<tr>
+			<td><strong>Movie</strong></td>
+			<td></td>
+			<td><strong>Year</strong></td>
+		</tr>
+	</table>
+
+     <input type="button" id="close_view" value="Close" />
+</div>
+
+
+<div id="search_results">
+
+<strong>Movies:</strong>
+       <table id="movies">
+       </table>
+
+
+<strong>Actors:</strong>
+       <table id="actors">
+       </table>
+
+
+<strong>Directors:</strong>
+       <table id="directors">
+       </table>
+
+</div>
+
+
+</center>
+
+
+
+
+</body>
+</html>

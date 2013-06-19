@@ -1,0 +1,67 @@
+open(const...)
+{
+	open index file with mode;
+	if (file DNE) {
+		create
+
+insert(int key, rid)
+find PageId for the leafnode to insert (key,rid);
+read leafnode by PageId
+if (leafnode.insert(key,rid) ==0{
+	write hte leafnode to PageId
+}
+else { // overflows
+	leafnode.insertAndSplit(key, rid, sib, sibkey);
+	write the new sibling node;
+	insertIntoParent(); // recursively insert the key of the new node to the parent non leaf node;
+}
+}
+
+insertIntoParent (int midkey, ... ){
+	if (there is no parent anymore) {
+		create a new non-leafe node as root, and insert midkey into it;
+		increase the height of hte tree;
+	}
+	else {
+		find the parent node to pid1;
+		if (insert midkey to parent node successful){
+			write parent node;
+		}
+		else {
+			split the parent node and insert midkey;
+			insertIntoParent (new MidKey, ...);
+		}
+	}
+}
+
+in the node, you can store the parent pid so you can access it
+	or, you can start from the root and traverse down
+
+BTreeIndex::locate ( serach key, IndexCursor .. ){
+	find the pid of the leaf node for searchKey;
+	find the eid of the slot in the leaf node for searchKey;
+	store pid and edi in crursor;
+} 
+- call locate for leaf node 
+When you traverse down, you dont know if it's a leaf or nonleaf, we only ahve pid
+- we can store information in the node if it's a leaf or nonleaf
+- or we can use the height of the tree
+
+-pageid key (8 bytes) => 1 KB/ 8 byte = 128
+-record, key (12 bytes) => 1 KB/ 12 bytes = 85
+
+gdb -tui bruinbast
+(gdb) list BTLeafNode::locate // function
+(gdb) list BTreeNode.cc:148 // line number
+(gdb) bp BTreeNode.cc:148 // breakpoint
+(gdb) display searchKey // watch variable
+(gdb) p count // prints value, can do structs or class 
+
+
+
+
+
+
+
+
+

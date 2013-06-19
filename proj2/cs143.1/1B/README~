@@ -1,0 +1,21 @@
+Database Constraints Brainstorming (Movie to MovieGenre):
+
+Movie:
+id must be between 0 and MaxMovieID (CHECK)
+year must be non-negative (CHECK)
+rating must be one of NR, G, PG, PG-13, R, NC-17 (CHECK)
+company must not be NULL (CHECK)
+
+Actor:
+id must be the primary key (PRIMARY KEY)
+id must be between 0 and MaxPersonID (CHECK)
+sex must be Male or Female (CHECK)
+
+Director:
+id must be the primary key (PRIMARY KEY)
+id must be between 0 and MaxPersonID (CHECK)
+
+MovieGenre:
+mid must reference Movie(id) (REFERENTIAL INTEGRITY)
+genre must not be NULL (CHECK)
+

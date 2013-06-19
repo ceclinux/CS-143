@@ -1,0 +1,16 @@
+Answers:
+1. no
+2. no
+3. yes
+4. yes
+// remember sql queries don't empty duplicates
+5. yes
+6. no
+7. yes if A is key, no if A isn't a keY
+8. no
+9. no
+10. yes
+11. yes
+12. no
+
+

@@ -1,0 +1,19 @@
+Chris Rewinski
+903668481
+crewinski@ucla.edu
+
+Terry Huang
+703662946
+thuang513@gmail.com
+
+
+Division of Labor:
+
+Chris:
+1. BTreeIndex::insert, open and read
+
+Terry:
+1. BTreeIndex::locate, readForward
+
+Both: 
+Minor changes to BTreeNode.cc

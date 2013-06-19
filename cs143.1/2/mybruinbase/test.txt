@@ -1,0 +1,6 @@
+Starting Chris' tests....
+Inserting an spliting with key = 5505
+Inserting an spliting with key = 8257
+Inserting an spliting with key = 11009
+Inserting an spliting with key = 13761
+End of Chris' tests.

@@ -1,0 +1,15 @@
+#! /bin/bash
+
+
+# Remove any previous test files
+rm *.tbl
+
+echo LOAD Movie2 FROM \'../movie.del\' | ../bruinbase
+
+
+# Do a select
+#echo SELECT '*' FROM Movie | ./bruinbase
+
+
+# Figure out the difference between the newly created table and the current table
+diff ../movie.tbl movie2.tbl > STDOUT

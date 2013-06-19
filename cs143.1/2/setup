@@ -1,0 +1,6 @@
+# !/bin/bash
+
+wget http://oak.cs.ucla.edu/cs143/project/bruinbase/bruinbase.zip
+unzip -d ./bruinbase bruinbase.zip
+cd bruinbase
+make

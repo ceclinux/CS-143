@@ -1,0 +1,5 @@
+#! /bin/bash
+
+
+g++ Test.cc PageFile.cc BTreeNode.cc BTreeIndex.cc -o tester -g
+./tester

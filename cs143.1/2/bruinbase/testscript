@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rm b.out
+
+g++ TreeTest.cc  -g -o b.out
+
+rm test.idx
+
+./b.out

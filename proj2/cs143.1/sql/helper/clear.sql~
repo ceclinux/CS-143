@@ -1,0 +1,7 @@
+DROP TABLE Movie;
+DROP TABLE Actor;
+DROP TABLE Director;
+DROP TABLE MovieDirector;
+DROP TABLE MovieGenre;
+DROP TABLE Review;
+DROP TABLE MovieActor;

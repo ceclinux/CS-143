@@ -1,0 +1,17 @@
+Chris Rewinski
+903668481
+crewinski@ucla.edu
+
+Terry Huang
+703662946
+thuang513@gmail.com
+
+Project 2D Submission
+
+Chris worked on load.
+Terry and Chris worked on select.
+
+Select works correctly, but doesn't always have great performance.
+From our testing, it always returns the right number of tuples.
+However, sometimes it reads more pages than it should.
+We were unable to trace down this bug in time.

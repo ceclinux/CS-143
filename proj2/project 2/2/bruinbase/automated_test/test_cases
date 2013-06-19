@@ -1,0 +1,33 @@
+#! /bin/bash
+
+
+
+####### Test Case 1 (FOR LOAD): Make sure that the output .tbl file of the original table is the same ##########
+
+# Remove any previous test files
+rm *.tbl
+
+echo LOAD Movie2 FROM \'../movie.del\' | ../bruinbase
+
+
+# Do a select
+#echo SELECT '*' FROM Movie | ./bruinbase
+
+
+# Figure out the difference between the newly created table and the current table
+diff ../movie.tbl movie2.tbl > TEST_LOAD_OUTPUT
+
+# Check the result
+RESULT=$(ls -l TEST_LOAD_OUTPUT | awk '{ print $5 }') 
+
+# Clear up the temp files
+rm TEST_LOAD_OUTPUT
+
+
+if [ $RESULT = 0 ]; then
+    echo "PASSED"
+else 
+    echo "FAILED!"
+fi
+
+

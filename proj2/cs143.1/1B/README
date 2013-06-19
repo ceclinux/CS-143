@@ -1,0 +1,22 @@
+Chris Rewinski
+903668481 
+crewinski@ucla.edu
+
+Terry Huang
+703662946
+thuang513@gmail.com
+
+
+Division of Labor:
+
+Chris:
+1. create.sql:  Movie -> Movie Genre table
+2. queries.sql 
+3. query.php
+
+Terry: 
+1. create.sql: MovieDirector -> MaxPersonID/MaxMovieID tables
+2. load.sql
+3, violate.sql
+
+

@@ -1,0 +1,9 @@
+#! /bin/bash
+
+
+# Remove everything in the www folder
+rm -rf ~/www/*
+cp -r * ~/www/
+chmod 755 ~/www/*
+
+
